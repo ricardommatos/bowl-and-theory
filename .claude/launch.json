@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "poster-tool",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "/Users/ricardomatos/Documents/Claude Code/jazzy-poster-tool", "-l", "3847"],
+      "port": 3847
+    }
+  ]
+}
