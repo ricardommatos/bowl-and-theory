@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jazzy Nova — Poster Builder</title>
+<meta property="og:title" content="Jazzy Nova — Do Your Own Poster">
+<meta property="og:description" content="Bowl and Theory poster builder. Roll the ball to scatter the pins and create your own unique poster.">
+<meta property="og:image" content="preview.svg">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Jazzy Nova — Do Your Own Poster">
+<meta name="twitter:description" content="Bowl and Theory poster builder by Code and Theory.">
+<meta name="twitter:image" content="preview.svg">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+  :root {
+    --ui-bg: #1a1a1a;
+    --ui-surface: #2E2E2E;
+    --ui-border: #3a3a3a;
+    --ui-text: #e0e0e0;
+    --ui-text-dim: #666;
+    --ui-accent: #FF1100;
+    --sidebar-w: 360px;
+  }
+
+  body {
+    font-family: "Inter", system-ui, sans-serif;
+    background: var(--ui-bg);
+    color: var(--ui-text);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* Sidebar */
+  aside {
+    width: var(--sidebar-w);
+    min-width: var(--sidebar-w);
+    background: var(--ui-surface);
+    padding: 40px 36px;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .sidebar-header {
+    margin-bottom: 0;
+  }
+
+  .sidebar-header h1 {
+    font-size: 48px;
+    font-weight: 900;
+    line-height: 1.0;
+    color: #fff;
+    letter-spacing: -0.03em;
+  }
+
+  /* Bowling ball + Roll button */
+  .roll-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    padding: 0;
+  }
+
+  .bowling-ball {
+    width: 240px;
+    height: 240px;
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.3s;
+    filter: drop-shadow(0 8px 40px rgba(255, 17, 0, 0.25));
+  }
+  .bowling-ball:hover {
+    transform: scale(1.05);
+    filter: drop-shadow(0 16px 60px rgba(255, 17, 0, 0.45));
+  }
+  .bowling-ball:active {
+    transform: scale(0.95);
+  }
+  .bowling-ball.rolling {
+    animation: rollBall 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes rollBall {
+    0% { transform: scale(1) rotate(0deg); }
+    30% { transform: scale(0.85) rotate(-15deg); }
+    60% { transform: scale(1.1) rotate(10deg); }
+    100% { transform: scale(1) rotate(0deg); }
+  }
+
+  .ball-svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Buttons */
+  .btn-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+
+  .btn {
+    flex: 1;
+    padding: 11px 16px;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 6px;
+    background: transparent;
+    color: rgba(255,255,255,0.6);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+    font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+  }
+  .btn:hover { border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.05); color: #fff; }
+
+  .btn-primary {
+    background: #fff;
+    color: #000;
+    border-color: #fff;
+  }
+  .btn-primary:hover { opacity: 0.9; background: #fff; color: #000; }
+
+  .spacer { flex: 1; }
+
+  .credit {
+    margin-top: 8px;
+  }
+  .credit svg {
+    width: 100%;
+    max-width: 120px;
+    opacity: 0.35;
+  }
+
+  /* Workspace */
+  main {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    position: relative;
+    background: var(--ui-bg);
+  }
+
+  /* Poster wrapper — scales to fit viewport */
+  .poster-wrapper {
+    position: relative;
+    box-shadow: 0 20px 80px rgba(0,0,0,0.6);
+  }
+
+  /* Poster canvas */
+  #poster {
+    position: relative;
+    overflow: hidden;
+    background: #000;
+    /* Internal coordinate system: 2180×2906 */
+  }
+
+  #poster svg {
+    position: absolute;
+    display: block;
+  }
+
+  /* Pin elements */
+  .pin {
+    position: absolute;
+    transition: transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transform-origin: 50% 70%;
+    will-change: transform;
+  }
+  .pin.scatter {
+    transition: transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .pin:nth-child(1).scatter { transition-duration: 0.9s; }
+  .pin:nth-child(2).scatter { transition-duration: 1.1s; }
+  .pin:nth-child(3).scatter { transition-duration: 1.0s; }
+  .pin:nth-child(4).scatter { transition-duration: 0.85s; }
+
+  /* Reset: lift pins up off screen */
+  .pin.lift-out {
+    transition: transform 0.5s cubic-bezier(0.55, 0, 1, 0.45),
+                opacity 0.3s ease 0.2s;
+    opacity: 0;
+  }
+
+  /* Reset: drop pins back in from above — no transition so we can set start position instantly */
+  .pin.above {
+    transition: none;
+    opacity: 0;
+  }
+
+  /* Reset: drop into place */
+  .pin.drop-in {
+    transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
+                opacity 0.3s ease;
+    opacity: 1;
+  }
+  .pin:nth-child(1).drop-in { transition-delay: 0s; }
+  .pin:nth-child(2).drop-in { transition-delay: 0.06s; }
+  .pin:nth-child(3).drop-in { transition-delay: 0.12s; }
+  .pin:nth-child(4).drop-in { transition-delay: 0.18s; }
+
+</style>
+</head>
+<body>
+
+<aside>
+  <div class="sidebar-header">
+    <h1>Do<br>Your<br>Own<br>Poster</h1>
+  </div>
+
+  <div class="roll-section">
+    <div class="bowling-ball" id="rollBtn" title="Roll the Ball">
+      <svg class="ball-svg" viewBox="0 0 1018 1018" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M1017.95 508.977C1017.95 790.077 790.077 1017.95 508.977 1017.95C227.877 1017.95 0 790.077 0 508.977C0 227.877 227.877 0 508.977 0C790.077 0 1017.95 227.877 1017.95 508.977Z" fill="#FF1100"/>
+        <ellipse cx="623.339" cy="281.82" rx="64.624" ry="53.75" transform="rotate(15.665 623.339 281.82)" fill="#2E2E2E"/>
+        <ellipse cx="394.482" cy="281.823" rx="64.624" ry="53.75" transform="rotate(-16.152 394.482 281.823)" fill="#2E2E2E"/>
+        <ellipse cx="508.979" cy="735.346" rx="64.624" ry="54.542" fill="#2E2E2E"/>
+        <text x="509" y="540" text-anchor="middle" fill="#fff" font-family="Inter, system-ui, sans-serif" font-size="90" font-weight="800">Roll the Ball</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn" id="resetBtn">Reset</button>
+    <button class="btn btn-primary" id="exportBtn">Export PNG</button>
+  </div>
+
+  <div class="credit">
+    <svg viewBox="0 0 708 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M44.313 2.576C44.313 3.895 44.536 9.773 45.196 14.025C44.902 14.909 42.923 15.203 42.404 14.544C40.426 7.724 35.726 4.049 28.611 4.049C20.472 4.049 11.732 11.022 11.732 25.616C11.732 40.222 20.166 48.067 28.976 48.067C37.858 48.067 41.969 41.683 43.948 36.688C44.536 36.099 46.292 36.323 46.739 37.206C46.221 42.637 44.972 47.03 43.948 48.726C39.99 49.822 34.772 51.436 29.059 51.436C21.874 51.436 14.535 49.751 9.329 45.864C4.028 41.824 0 35.734 0 26.641C0 17.689 3.816 11.375 8.881 7.205C14.088 2.871 21.567 0.668 29.2 0.668C36.68 0.668 42.11 2.435 44.313 2.576Z" fill="#FFFFFF"/>
+      <path d="M102.5 25.828C102.5 41.824 91.793 51.436 76.021 51.436C61.273 51.436 50.566 41.753 50.566 26.417C50.566 11.893 61.427 0.668 76.763 0.668C92.017 0.668 102.5 10.939 102.5 25.828ZM76.162 4.049C67.139 4.049 62.298 12.482 62.298 24.733C62.298 33.685 65.455 48.067 77.411 48.067C87.022 48.067 90.768 38.679 90.768 26.794C90.768 14.237 85.256 4.049 76.162 4.049Z" fill="#FFFFFF"/>
+      <path d="M113.793 13.726C113.793 6.753 113.64 5.363 110.271 4.998L108.881 4.856C108.151 4.491 108.151 2.359 109.022 2.289C115.183 1.923 120.907 1.629 128.682 1.629C134.701 1.629 140.708 2.218 145.773 4.055C155.396 7.483 160.673 16.141 160.673 25.317C160.673 35.152 155.974 43.068 147.54 47.249C142.545 49.746 136.538 50.7 128.976 50.7C125.525 50.7 121.861 50.264 119.223 50.264C115.701 50.264 111.955 50.335 107.774 50.477C107.185 50.041 107.185 48.274 107.774 47.909L110.047 47.544C113.345 46.955 113.793 46.448 113.793 39.699V13.726ZM124.288 36.978C124.288 41.018 124.429 43.657 125.76 45.2C127.08 46.672 129.212 47.332 131.85 47.332C144.548 47.332 148.871 36.035 148.871 26.059C148.871 12.854 141.898 4.998 128.623 4.998C126.644 4.998 125.242 5.363 124.806 5.952C124.37 6.541 124.288 7.931 124.288 10.204V36.978Z" fill="#FFFFFF"/>
+      <path d="M182.462 20.907C182.462 22.957 182.533 23.11 184.523 23.11H189.588C193.405 23.11 194.206 22.604 195.018 19.07L195.384 17.244C195.902 16.655 197.728 16.655 198.093 17.315C197.951 19.659 197.869 22.309 197.869 25.089C197.869 27.881 197.94 30.519 198.093 32.863C197.728 33.523 195.89 33.593 195.384 32.934L195.018 31.096C194.206 27.574 193.405 26.985 189.588 26.985H184.523C182.544 26.985 182.462 27.056 182.462 29.259V37.987C182.462 41.356 182.756 43.712 183.64 44.96C184.594 46.279 185.984 46.868 191.343 46.868C197.728 46.868 200.225 46.656 204.253 38.364C204.842 37.563 206.68 37.857 206.962 38.729C206.668 42.545 204.913 48.482 203.876 50.461C199.989 50.32 192.945 50.249 186.926 50.249H177.385C173.863 50.249 170.271 50.32 164.77 50.461C164.181 50.025 164.181 48.258 164.77 47.893L168.221 47.375C171.519 46.939 171.967 46.421 171.967 39.671V12.32C171.967 5.642 171.531 5.135 168.221 4.546L166.384 4.181C165.724 3.745 165.795 2.049 166.525 1.613C169.976 1.755 173.569 1.837 177.091 1.837H192.639C197.339 1.837 201.52 1.755 202.475 1.613C202.545 2.791 203.063 8.068 203.429 12.98C203.134 13.793 201.45 13.934 200.719 13.274C199.918 10.707 198.882 8.504 197.928 7.479C196.538 6.089 194.335 5.206 190.743 5.206H184.877C182.45 5.206 182.45 5.347 182.45 8.068V20.907H182.462Z" fill="#FFFFFF"/>
+      <path d="M241.746 33.685C239.991 33.685 239.767 33.767 239.331 35.157L236.622 43.673C236.186 45.134 236.104 45.723 236.104 46.312C236.104 46.748 236.693 47.195 238.742 47.56L240.945 47.925C241.381 48.432 241.534 50.128 240.804 50.493C238.236 50.352 235.303 50.352 232.217 50.281C229.72 50.281 228.035 50.493 224.655 50.493C223.854 50.057 223.924 48.514 224.431 47.925L226.41 47.702C228.177 47.478 229.708 46.889 230.886 44.027C232.205 41.094 233.454 37.572 235.432 32.295L242.041 14.39C243.807 9.773 245.127 7.205 244.903 5.073C248.425 4.272 251.134 0.668 251.287 0.668C252.241 0.668 252.677 1.033 252.971 2.14C253.56 4.272 254.444 6.982 256.27 12.188L266.246 40.952C267.79 45.358 268.449 46.971 271.158 47.478L273.95 47.914C274.386 48.279 274.539 50.034 273.879 50.481C270.357 50.34 266.4 50.27 262.583 50.27C258.908 50.27 256.058 50.34 252.677 50.481C251.864 50.046 251.723 48.503 252.536 47.914L254.88 47.548C256.564 47.254 256.859 46.736 256.859 46.3C256.859 45.782 256.34 44.027 255.469 41.317L253.49 35.004C253.125 33.826 252.536 33.685 249.968 33.685H241.746ZM249.591 29.797C251.275 29.797 251.723 29.574 251.063 27.666L249.155 21.717C248.13 18.56 247.176 15.557 246.517 14.014C245.786 15.627 244.608 18.713 243.513 22.082L241.675 27.583C240.945 29.562 241.381 29.786 243.218 29.786H249.591V29.797Z" fill="#FFFFFF"/>
+      <path d="M319.8 37.798C319.8 42.569 319.8 47.186 319.942 49.613C319.423 50.496 317.374 51.297 315.619 51.297C315.548 51.297 313.122 47.563 309.67 43.299L292.72 22.321C288.539 17.032 286.042 14.028 284.722 12.933C284.357 13.663 284.357 14.912 284.357 17.633V31.862C284.357 37.81 284.652 43.311 285.453 45.29C286.112 46.833 287.797 47.269 289.705 47.634L291.754 47.928C292.343 48.517 292.19 50.049 291.754 50.496C287.797 50.355 284.852 50.284 281.919 50.284C279.198 50.284 276.489 50.355 273.697 50.496C273.261 50.06 273.108 48.517 273.697 47.928L274.946 47.705C276.925 47.269 278.326 46.821 278.986 45.278C279.716 43.299 280.011 37.798 280.011 31.85V13.216C280.011 9.175 280.011 8.009 279.492 6.973C278.974 5.724 277.879 4.994 275.311 4.476L273.261 4.181C272.743 3.592 272.826 1.837 273.556 1.613C277.007 1.755 280.67 1.837 283.674 1.837C286.171 1.837 288.291 1.766 289.834 1.613C290.565 4.911 295.335 10.495 301.943 18.34L308.104 25.607C311.402 29.424 313.463 31.991 315.148 33.676C315.442 32.946 315.442 31.697 315.442 30.378V20.259C315.442 14.311 315.148 8.81 314.347 6.831C313.687 5.288 312.073 4.853 310.094 4.487L308.116 4.193C307.527 3.604 307.68 2.061 308.116 1.625C312.073 1.766 314.936 1.849 317.951 1.849C320.672 1.849 323.31 1.778 326.173 1.625C326.609 2.061 326.762 3.604 326.173 4.193L324.854 4.417C322.945 4.853 321.555 5.3 320.896 6.843C320.083 8.822 319.8 14.323 319.8 20.271V37.798Z" fill="#FFFFFF"/>
+      <path d="M335.207 13.726C335.207 6.753 335.054 5.363 331.685 4.998L330.295 4.856C329.565 4.491 329.565 2.359 330.436 2.289C336.597 1.923 342.321 1.629 350.096 1.629C356.115 1.629 362.122 2.218 367.187 4.055C376.799 7.507 382.076 16.164 382.076 25.328C382.076 35.164 377.376 43.079 368.942 47.261C363.948 49.758 357.94 50.712 350.378 50.712C346.927 50.712 343.264 50.276 340.625 50.276C337.103 50.276 333.358 50.347 329.176 50.488C328.587 50.053 328.587 48.286 329.176 47.92L331.449 47.555C334.748 46.966 335.195 46.46 335.195 39.711V13.726H335.207ZM345.702 36.978C345.702 41.018 345.843 43.657 347.174 45.2C348.494 46.672 350.626 47.332 353.264 47.332C365.962 47.332 370.285 36.035 370.285 26.059C370.285 12.854 363.312 4.998 350.037 4.998C348.058 4.998 346.656 5.363 346.22 5.952C345.785 6.541 345.702 7.931 345.702 10.204V36.978Z" fill="#FFFFFF"/>
+      <path d="M422.815 7.338C422.815 5.571 422.815 5.206 421.049 5.206H416.502C411.142 5.206 409.611 8.139 407.408 13.499C406.525 13.935 405.135 13.793 404.688 12.839C406.231 7.774 406.596 3.227 407.114 0.365C407.408 0.153 407.774 0 408.139 0C408.504 0 408.869 0.071 409.164 0.294C409.529 1.543 409.752 1.838 415.324 1.838H442.616C447.457 1.838 448.553 1.755 449.224 0.224C449.518 0.071 449.742 0 450.178 0C450.614 0 451.132 0.294 451.274 0.506C450.543 3.004 450.025 8.94 450.178 13.122C449.813 13.781 447.834 13.935 447.457 13.346C446.209 8.646 445.184 5.206 439.683 5.206H435.278C433.523 5.206 433.299 5.43 433.299 7.338V39.695C433.299 46.515 433.735 47.034 437.045 47.54L439.977 47.905C440.484 48.341 440.484 50.026 439.977 50.473C435.207 50.332 431.544 50.261 428.234 50.261C424.712 50.261 420.895 50.332 415.76 50.473C415.171 50.037 415.171 48.341 415.76 47.905L419.058 47.54C422.356 47.022 422.792 46.515 422.792 39.695V7.338H422.815Z" fill="#FFFFFF"/>
+      <path d="M473.348 26.997C470.344 26.997 470.262 27.068 470.262 29.117V39.695C470.262 46.515 470.698 47.033 473.996 47.622L476.34 47.917C476.929 48.352 476.929 50.037 476.34 50.484C472.158 50.343 468.495 50.273 465.185 50.273C461.663 50.273 458 50.343 454.254 50.484C453.665 50.049 453.665 48.352 454.254 47.917L456.009 47.693C459.307 47.033 459.755 46.515 459.755 39.695V12.403C459.755 5.583 459.319 5.065 456.009 4.405L454.254 4.181C453.665 3.745 453.665 2.049 454.254 1.613C457.847 1.755 461.663 1.837 465.185 1.837C468.483 1.837 472.158 1.766 475.386 1.613C475.975 2.049 475.975 3.745 475.386 4.181L473.843 4.405C470.686 5.065 470.25 5.583 470.25 12.403V20.907C470.25 23.039 470.321 23.11 473.336 23.11H488.59C491.676 23.11 491.676 23.039 491.676 20.907V12.403C491.676 5.583 491.311 5.065 487.93 4.476L485.952 4.181C485.363 3.745 485.363 2.049 485.952 1.613C489.992 1.755 493.584 1.837 497.106 1.837C500.699 1.837 504.08 1.766 507.448 1.613C508.037 2.049 508.037 3.745 507.448 4.181L505.988 4.405C502.607 5.065 502.171 5.583 502.171 12.403V39.695C502.171 46.515 502.607 47.033 505.988 47.622L507.743 47.917C508.332 48.352 508.332 50.037 507.743 50.484C504.08 50.343 500.475 50.273 497.106 50.273C493.443 50.273 489.839 50.343 486.329 50.484C485.74 50.049 485.74 48.352 486.329 47.917L487.942 47.693C491.323 47.033 491.688 46.515 491.688 39.695V29.129C491.688 27.08 491.688 27.009 488.602 27.009H473.348V26.997Z" fill="#FFFFFF"/>
+      <path d="M529.411 20.907C529.411 22.957 529.482 23.11 531.461 23.11H536.526C540.342 23.11 541.143 22.604 541.956 19.07L542.321 17.244C542.828 16.655 544.665 16.655 545.03 17.315C544.889 19.659 544.818 22.309 544.818 25.089C544.818 27.881 544.889 30.519 545.03 32.863C544.665 33.523 542.828 33.593 542.321 32.934L541.956 31.096C541.155 27.574 540.342 26.985 536.526 26.985H531.461C529.482 26.985 529.411 27.056 529.411 29.259V37.987C529.411 41.356 529.706 43.712 530.577 44.96C531.531 46.279 532.921 46.868 538.281 46.868C544.665 46.868 547.162 46.656 551.191 38.364C551.78 37.563 553.617 37.857 553.912 38.729C553.617 42.545 551.862 48.482 550.825 50.461C546.938 50.32 539.895 50.249 533.875 50.249H524.334C520.812 50.249 517.22 50.32 511.719 50.461C511.13 50.025 511.13 48.258 511.719 47.893L515.17 47.375C518.468 46.939 518.916 46.421 518.916 39.671V12.32C518.916 5.642 518.48 5.135 515.17 4.546L513.333 4.181C512.673 3.745 512.744 2.049 513.474 1.613C516.914 1.755 520.518 1.837 524.04 1.837H539.588C544.288 1.837 548.47 1.755 549.424 1.613C549.494 2.791 550.013 8.068 550.378 12.98C550.083 13.793 548.399 13.934 547.669 13.274C546.868 10.707 545.831 8.504 544.877 7.479C543.487 6.089 541.284 5.206 537.692 5.206H531.826C529.411 5.206 529.411 5.347 529.411 8.068V20.907Z" fill="#FFFFFF"/>
+      <path d="M608.934 25.828C608.934 41.824 598.227 51.436 582.455 51.436C567.707 51.436 557 41.753 557 26.417C557 11.893 567.86 0.668 583.197 0.668C598.439 0.668 608.934 10.939 608.934 25.828ZM582.596 4.049C573.573 4.049 568.732 12.482 568.732 24.733C568.732 33.685 571.889 48.067 583.844 48.067C593.456 48.067 597.202 38.679 597.202 26.794C597.19 14.237 591.689 4.049 582.596 4.049Z" fill="#FFFFFF"/>
+      <path d="M620.237 13.726C620.237 6.388 620.095 5.587 617.009 5.151L615.03 4.856C614.3 4.491 614.3 2.654 615.172 2.289C620.672 1.923 626.397 1.629 633.37 1.629C639.613 1.629 644.961 2.583 647.752 4.267C652.005 6.765 654.207 10.428 654.207 15.128C654.207 21.665 649.802 24.445 646.433 26.129C645.703 26.494 645.703 26.93 646.068 27.743C650.909 37.578 653.913 43.079 657.435 46.083C659.343 47.626 661.251 48.062 662.347 48.133C663.006 48.498 663.006 49.605 662.641 50.041C661.475 50.559 659.119 50.7 656.846 50.7C650.096 50.7 645.844 48.274 642.617 42.997C640.273 39.11 638.577 35.517 636.892 31.618C636.009 29.639 634.831 29.05 633.005 29.05C630.437 29.05 630.284 29.192 630.284 30.664V39.699C630.284 46.448 630.72 46.966 634.03 47.544L636.009 47.909C636.515 48.274 636.515 50.029 636.009 50.477C632.122 50.335 628.741 50.264 625.219 50.264C621.556 50.264 618.317 50.335 614.512 50.477C613.923 50.041 613.923 48.274 614.512 47.909L616.491 47.544C619.789 46.955 620.237 46.448 620.237 39.699V13.726ZM630.284 23.043C630.284 25.611 630.508 25.835 634.831 25.835C637.469 25.835 639.012 25.175 640.414 23.785C641.663 22.537 643.053 20.193 643.053 15.87C643.053 9.262 639.166 5.009 633.441 5.009C630.426 5.009 630.425 5.222 630.284 8.743V23.043Z" fill="#FFFFFF"/>
+      <path d="M687.507 39.699C687.507 46.519 687.942 47.037 691.252 47.544L694.185 47.909C694.692 48.345 694.692 50.029 694.185 50.477C689.415 50.335 685.822 50.264 682.3 50.264C678.778 50.264 675.103 50.335 670.78 50.477C670.191 50.041 670.191 48.345 670.78 47.909L673.278 47.544C676.576 47.025 677.023 46.519 677.023 39.699V36.024C677.023 32.36 676.953 31.183 675.044 27.295L666.316 9.25C664.844 6.246 664.184 5.139 661.628 4.633L659.131 4.197C658.471 3.608 658.542 1.853 659.425 1.629C662.735 1.77 665.445 1.853 669.767 1.853C674.243 1.853 677.977 1.782 680.475 1.629C681.134 1.923 681.276 3.608 680.616 4.197L678.119 4.786C676.8 5.08 676.364 5.375 676.364 5.445C676.364 6.034 676.729 7.13 678.272 10.581L681.723 18.426C682.819 20.852 684.22 23.785 685.104 25.623C687.236 22.03 689.285 17.778 691.264 14.032C694.056 8.826 695.081 6.399 695.081 5.528C695.081 5.092 694.35 4.797 692.583 4.503L690.899 4.209C690.31 3.843 690.239 2.006 690.97 1.641C693.903 1.782 696.541 1.864 699.18 1.864C701.971 1.864 704.245 1.794 706.377 1.641C707.26 1.935 707.26 3.69 706.671 4.209L704.763 4.574C703.444 4.868 702.054 5.304 701.241 6.329C700.146 7.719 698.308 10.369 694.786 16.753L690.169 25.116C688.26 28.556 687.53 30.393 687.53 34.575V39.699H687.507Z" fill="#FFFFFF"/>
+    </svg>
+  </div>
+</aside>
+
+<main>
+  <div class="poster-wrapper">
+    <div id="poster"></div>
+  </div>
+</main>
+
+<script>
+// ═══════════════════════════════════════════════════
+// POSTER DATA — extracted from Paper design
+// ═══════════════════════════════════════════════════
+
+const POSTER_W = 2180;
+const POSTER_H = 2906;
+
+// Pin shape (bowling pin silhouette with halftone dot fill)
+const PIN_PATH = 'M754.524 239.797C754.524 72.277 602.352 0 495.136 0C408.608 0 235.551 57.978 235.551 239.797C235.551 493.743 326.237 606.806 326.237 838.044C326.237 1232.19 0.002 1398.25 0.002 1824.34C0.002 2152.96 168.074 2532.45 267.419 2681.12L720.898 2681.12C952.78 2334.8 985.695 1965.63 988.476 1824.34C988.476 1384.23 665.632 1243.99 665.632 838.044C665.632 633.984 754.524 449.198 754.524 239.797Z';
+const PIN_VB = '0 0 989 2682';
+const PIN_W = 951;
+const PIN_H = 2579;
+
+// 4 pins — original positions from Paper
+const PIN_DEFAULTS = [
+  { x: 0,    y: 289 },
+  { x: 614.5, y: 289 },
+  { x: 1233,  y: 289 },
+  { x: 0,    y: 289 },
+];
+
+// Top row letters (white) — B O W L
+const TOP_LETTERS = [
+  { id: 'B', x: 31, y: 289, w: 371, h: 829, vb: '0 0 70 165', fill: '#FFFFFF',
+    path: 'M0 0H46.033V32.836H23.017V65.672H46.033V98.508H23.017V131.343H46.033V164.179H0V0ZM46.033 32.836H69.05V65.672H46.033V32.836ZM46.033 98.508H69.05V131.343H46.033V98.508ZM57.542 49.254L34.525 82.09L23.017 65.672L46.033 32.836L57.542 49.254ZM23.017 32.836L34.525 16.418L57.542 49.254L46.033 65.672L23.017 32.836ZM69.05 98.508L57.542 114.926L34.525 82.09L46.033 65.672L69.05 98.508ZM57.542 114.926L34.525 147.761L23.017 131.343L46.033 98.508L57.542 114.926Z' },
+  { id: 'O', x: 412, y: 289, w: 371, h: 1406, vb: '0 0 70 280', fill: '#FFFFFF',
+    path: 'M46.033 55.844H69.05V223.375H46.033L46.033 55.844ZM23.017 223.375H46.033V279.219H23.017V223.375ZM0 55.844H23.017L23.017 223.375H0L0 55.844ZM23.017 0H46.033V55.844H23.017V0ZM11.508 83.766L34.525 27.922L46.033 55.844L23.017 111.687L11.508 83.766ZM46.033 223.375L34.525 251.297L11.508 195.453L23.017 167.531L46.033 223.375ZM57.542 195.453L34.525 251.297L23.017 223.375L46.033 167.531L57.542 195.453ZM23.017 55.844L34.525 27.922L57.542 83.766L46.033 111.687L23.017 55.844Z' },
+  { id: 'W', x: 793, y: 289, w: 643, h: 1038, vb: '0 0 121 206', fill: '#FFFFFF',
+    path: 'M72.29 164.463V205.579H48.193V164.463L48.193 0H72.29V164.463ZM24.097 164.463H48.193V205.579H24.097L24.097 164.463ZM72.29 164.463H96.387V205.579H72.29V164.463ZM96.387 0H120.483L120.483 124.51H96.387V0ZM72.29 124.51H96.387V164.463H72.29V124.51ZM108.435 103.952L84.338 145.068L72.29 124.51L96.387 83.394L108.435 103.952ZM0 124.51L0 0H24.097L24.097 124.51H0ZM24.097 164.463L24.097 124.51H48.193V164.463H24.097ZM48.193 124.51L36.145 145.068L12.048 103.952L24.097 83.394L48.193 124.51Z' },
+  { id: 'L', x: 1444, y: 289, w: 329, h: 1458, vb: '0 0 62 292', fill: '#FFFFFF',
+    path: 'M29.175 233.261H61.783L61.783 291.577H29.175L29.175 233.261ZM0 0H29.175L29.175 291.577H0L0 0Z' },
+];
+
+// Bottom row letters (red) — t h e o r y
+const BOT_LETTERS = [
+  { id: 't', x: 31, y: 1129, w: 371, h: 1742, vb: '0 0 70 347', fill: '#FF1100',
+    path: 'M23.017 69.282H0V0H69.05V69.282H46.033V346.408H23.017V69.282Z' },
+  { id: 'h', x: 412, y: 1706, w: 371, h: 1165, vb: '0 0 70 232', fill: '#FF1100',
+    path: 'M23.017 92.593H46.033V138.889H23.017V92.593ZM0 0H23.017V231.481H0V0ZM46.033 0H69.05V231.481H46.033V0Z' },
+  { id: 'e', x: 793, y: 1332, w: 260, h: 1538, vb: '0 0 49 306', fill: '#FF1100',
+    path: 'M23.017 0H48.741V61.165H23.017V0ZM23.017 244.658H48.741V305.823H23.017V244.658ZM23.017 122.329H48.741V183.494H23.017V122.329ZM0 0H23.017V305.823H0V0Z' },
+  { id: 'o', x: 1063, y: 1334, w: 371, h: 1537, vb: '0 0 70 306', fill: '#FF1100',
+    path: 'M46.033 61.165H69.05V244.658H46.033V61.165ZM23.017 244.658H46.033V305.823H23.017V244.658ZM0 61.165H23.017V244.658H0V61.165ZM23.017 0H46.033V61.165H23.017V0ZM11.508 91.747L34.525 30.582L46.033 61.165L23.017 122.329L11.508 91.747ZM46.033 244.658L34.525 275.241L11.508 214.076L23.017 183.494L46.033 244.658ZM57.542 214.076L34.525 275.241L23.017 244.658L46.033 183.494L57.542 214.076ZM23.017 61.165L34.525 30.582L57.542 91.747L46.033 122.329L23.017 61.165Z' },
+  { id: 'r', x: 1444, y: 1760, w: 329, h: 1111, vb: '0 0 62 221', fill: '#FF1100',
+    path: 'M40.965 176.036H20.482V132.027H40.965H61.447V220.045H40.965V176.036ZM0 0H40.965V44.009H20.482V88.018H40.965V132.027H20.482V220.045H0V0ZM40.965 44.009H61.447V88.018H40.965V44.009ZM51.206 66.013L30.724 110.023L20.482 88.018L40.965 44.009L51.206 66.013ZM20.482 44.009L30.724 22.005L51.206 66.013L40.965 88.018L20.482 44.009Z' },
+  { id: 'y', x: 1783, y: 1460, w: 371, h: 1411, vb: '0 0 70 281', fill: '#FF1100',
+    path: 'M23.017 112.115H46.033V280.289H23.017V112.115ZM0 0H23.017V112.115H0V0ZM46.033 0H69.05V112.115H46.033V0ZM46.033 112.115L34.525 140.144L11.508 84.087L23.017 56.058L46.033 112.115ZM57.542 84.087L34.525 140.144L23.017 112.115L46.033 56.058L57.542 84.087Z' },
+];
+
+// Header SVG (event info bar) — simplified as text
+const HEADER = { x: 31, y: 45, w: 2116, h: 119 };
+
+// "and" badge
+const AND_BADGE = { x: 1859, y: 289, w: 293, h: 293 };
+
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+
+const state = {
+  rollCount: 0,
+  pinTransforms: [
+    { x: 0, y: 0, rotate: 0 },
+    { x: 0, y: 0, rotate: 0 },
+    { x: 0, y: 0, rotate: 0 },
+    { x: 0, y: 0, rotate: 0 },
+  ],
+  isAnimating: false,
+};
+
+// ═══════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════
+
+const posterEl = document.getElementById('poster');
+
+function fitPoster() {
+  const main = document.querySelector('main');
+  const maxW = main.clientWidth - 80;
+  const maxH = main.clientHeight - 80;
+  const aspect = POSTER_W / POSTER_H;
+
+  let displayW, displayH;
+  if (maxW / maxH > aspect) {
+    displayH = maxH;
+    displayW = maxH * aspect;
+  } else {
+    displayW = maxW;
+    displayH = maxW / aspect;
+  }
+
+  posterEl.style.width = displayW + 'px';
+  posterEl.style.height = displayH + 'px';
+  posterEl.dataset.scale = displayW / POSTER_W;
+}
+
+function buildPoster() {
+  posterEl.innerHTML = '';
+  const scale = parseFloat(posterEl.dataset.scale) || 1;
+
+  // Helper: add an SVG element
+  function addSVG(parent, { x, y, w, h, vb, path, fill, cls, id, preserveAR }) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', vb);
+    svg.setAttribute('width', w * scale);
+    svg.setAttribute('height', h * scale);
+    if (preserveAR) svg.setAttribute('preserveAspectRatio', preserveAR);
+    else svg.setAttribute('preserveAspectRatio', 'none');
+    svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    svg.style.position = 'absolute';
+    svg.style.left = (x * scale) + 'px';
+    svg.style.top = (y * scale) + 'px';
+    if (cls) svg.classList.add(cls);
+    if (id) svg.id = id;
+
+    if (path) {
+      const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      p.setAttribute('d', path);
+      p.setAttribute('fill', fill || '#fff');
+      svg.appendChild(p);
+    }
+
+    parent.appendChild(svg);
+    return svg;
+  }
+
+  // 1. Top row letters (white)
+  TOP_LETTERS.forEach(l => {
+    addSVG(posterEl, l);
+  });
+
+  // 2. Bottom row letters (red)
+  BOT_LETTERS.forEach(l => {
+    addSVG(posterEl, l);
+  });
+
+  // 3. Bowling pins with halftone pattern
+  PIN_DEFAULTS.forEach((pin, i) => {
+    const container = document.createElement('div');
+    container.className = 'pin';
+    container.id = 'pin-' + i;
+    container.style.left = (pin.x * scale) + 'px';
+    container.style.top = (pin.y * scale) + 'px';
+    container.style.width = (PIN_W * scale) + 'px';
+    container.style.height = (PIN_H * scale) + 'px';
+
+    // Apply current transform
+    const t = state.pinTransforms[i];
+    container.style.transform = `translate(${t.x * scale}px, ${t.y * scale}px) rotate(${t.rotate}deg)`;
+
+    // SVG with halftone pattern
+    const patternId = 'halftone-' + i;
+    container.innerHTML = `
+      <svg viewBox="${PIN_VB}" width="100%" height="100%" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+        <defs>
+          <pattern id="${patternId}" patternUnits="userSpaceOnUse"
+            patternTransform="matrix(-19.091 0 0 38.181 988.477 0)"
+            preserveAspectRatio="none"
+            viewBox="0 0 64.383 128.766" width="1" height="1">
+            <g id="dot-${i}">
+              <circle cx="16.016" cy="16.016" r="16.016" fill="#FF1100"/>
+            </g>
+            <use href="#dot-${i}" transform="translate(-64.383 0)"/>
+            <use href="#dot-${i}" transform="translate(-32.191 64.383)"/>
+            <use href="#dot-${i}" transform="translate(32.191 64.383)"/>
+          </pattern>
+        </defs>
+        <path d="${PIN_PATH}" fill="url(#${patternId})" />
+      </svg>`;
+
+    posterEl.appendChild(container);
+  });
+
+  // 4. Header bar
+  const headerSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  headerSvg.setAttribute('viewBox', '0 0 2116 119');
+  headerSvg.setAttribute('width', HEADER.w * scale);
+  headerSvg.setAttribute('height', HEADER.h * scale);
+  headerSvg.setAttribute('preserveAspectRatio', 'none');
+  headerSvg.style.position = 'absolute';
+  headerSvg.style.left = (HEADER.x * scale) + 'px';
+  headerSvg.style.top = (HEADER.y * scale) + 'px';
+  headerSvg.innerHTML = `
+    <rect width="2116" height="119" rx="59.5" fill="#010101"/>
+    <circle cx="62" cy="59" r="21" fill="#fff"/>
+    <text x="100" y="72" fill="#fff" font-family="Inter, system-ui, sans-serif" font-size="46" font-weight="600">All game.</text>
+    <circle cx="870" cy="59" r="21" fill="#fff"/>
+    <text x="910" y="72" fill="#fff" font-family="Inter, system-ui, sans-serif" font-size="46" font-weight="600">No gutter.</text>
+    <circle cx="1550" cy="59" r="21" fill="#fff"/>
+    <text x="1590" y="72" fill="#fff" font-family="Inter, system-ui, sans-serif" font-size="46" font-weight="600">April 29</text>
+    <text x="1830" y="72" fill="#fff" font-family="Inter, system-ui, sans-serif" font-size="46" font-weight="400">7-10 PM EST</text>
+  `;
+  posterEl.appendChild(headerSvg);
+
+  // 5. "and" badge
+  const andSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  andSvg.setAttribute('viewBox', '0 0 51 51');
+  andSvg.setAttribute('width', AND_BADGE.w * scale);
+  andSvg.setAttribute('height', AND_BADGE.h * scale);
+  andSvg.style.position = 'absolute';
+  andSvg.style.left = (AND_BADGE.x * scale) + 'px';
+  andSvg.style.top = (AND_BADGE.y * scale) + 'px';
+  andSvg.innerHTML = `
+    <circle cx="25.143" cy="25.143" r="25.143" fill="#FFFFFF"/>
+    <text x="25.143" y="30" text-anchor="middle" fill="#010101" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600">and</text>
+  `;
+  posterEl.appendChild(andSvg);
+}
+
+// ═══════════════════════════════════════════════════
+// ROLL THE BALL — scatter pins
+// ═══════════════════════════════════════════════════
+
+// Preload strike sound
+const strikeSound = new Audio('strike.mp3');
+strikeSound.volume = 0.7;
+
+function rollTheBall() {
+  if (state.isAnimating) return;
+  state.isAnimating = true;
+  state.rollCount++;
+
+  // Play strike sound
+  strikeSound.currentTime = 0;
+  strikeSound.play().catch(() => {});
+
+  // Animate bowling ball
+  const ball = document.getElementById('rollBtn');
+  ball.classList.add('rolling');
+  setTimeout(() => ball.classList.remove('rolling'), 600);
+
+  const scale = parseFloat(posterEl.dataset.scale) || 1;
+
+  // Generate random scatter — more dramatic, wilder rotations
+  state.pinTransforms = PIN_DEFAULTS.map((_, i) => {
+    const direction = (Math.random() - 0.5) * 2; // -1 to 1
+    const intensity = 0.5 + Math.random() * 0.5;
+
+    return {
+      x: direction * (300 + Math.random() * 800) * intensity,
+      y: (Math.random() - 0.6) * 600 * intensity,
+      rotate: direction * (30 + Math.random() * 90) * intensity,
+    };
+  });
+
+  // Apply transforms with animation
+  const pins = document.querySelectorAll('.pin');
+  pins.forEach((pin, i) => {
+    pin.classList.add('scatter');
+    const t = state.pinTransforms[i];
+    pin.style.transform = `translate(${t.x * scale}px, ${t.y * scale}px) rotate(${t.rotate}deg)`;
+  });
+
+  setTimeout(() => {
+    pins.forEach(p => p.classList.remove('scatter'));
+    state.isAnimating = false;
+  }, 1300);
+}
+
+// ═══════════════════════════════════════════════════
+// RESET
+// ═══════════════════════════════════════════════════
+
+let resetTimer1 = null;
+let resetTimer2 = null;
+
+function resetPoster() {
+  // Clear any pending timers from previous animations
+  clearTimeout(resetTimer1);
+  clearTimeout(resetTimer2);
+  state.isAnimating = true;
+  state.rollCount = 0;
+
+  const scale = parseFloat(posterEl.dataset.scale) || 1;
+  const pins = document.querySelectorAll('.pin');
+
+  // Step 1: Lift pins up and fade out
+  pins.forEach(pin => {
+    pin.className = 'pin lift-out';
+    pin.style.transform = `translate(0px, ${-800 * scale}px) rotate(0deg)`;
+  });
+
+  // Step 2: After lift-out completes, teleport pins above (instant)
+  resetTimer1 = setTimeout(() => {
+    pins.forEach(pin => {
+      pin.className = 'pin above';
+      pin.style.transform = `translate(0px, ${-500 * scale}px) rotate(0deg)`;
+    });
+
+    // Step 3: Drop pins into place (next frame so browser registers the position)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        state.pinTransforms = PIN_DEFAULTS.map(() => ({ x: 0, y: 0, rotate: 0 }));
+        pins.forEach(pin => {
+          pin.className = 'pin drop-in';
+          pin.style.transform = 'translate(0px, 0px) rotate(0deg)';
+        });
+
+        // Cleanup
+        resetTimer2 = setTimeout(() => {
+          pins.forEach(pin => { pin.className = 'pin'; });
+          state.isAnimating = false;
+        }, 900);
+      });
+    });
+  }, 600);
+}
+
+// ═══════════════════════════════════════════════════
+// EXPORT PNG at 3x
+// ═══════════════════════════════════════════════════
+
+function exportPNG() {
+  const exportScale = 3;
+  const w = POSTER_W * exportScale;
+  const h = POSTER_H * exportScale;
+
+  // Build a full SVG string for export
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${w}" height="${h}" viewBox="0 0 ${POSTER_W} ${POSTER_H}">`;
+  svg += `<rect width="100%" height="100%" fill="#000"/>`;
+
+  // Top letters
+  TOP_LETTERS.forEach(l => {
+    svg += `<svg x="${l.x}" y="${l.y}" width="${l.w}" height="${l.h}" viewBox="${l.vb}" preserveAspectRatio="none">`;
+    svg += `<path d="${l.path}" fill="${l.fill}"/>`;
+    svg += `</svg>`;
+  });
+
+  // Bottom letters
+  BOT_LETTERS.forEach(l => {
+    svg += `<svg x="${l.x}" y="${l.y}" width="${l.w}" height="${l.h}" viewBox="${l.vb}" preserveAspectRatio="none">`;
+    svg += `<path d="${l.path}" fill="${l.fill}"/>`;
+    svg += `</svg>`;
+  });
+
+  // Pins with transforms
+  PIN_DEFAULTS.forEach((pin, i) => {
+    const t = state.pinTransforms[i];
+    const cx = pin.x + PIN_W / 2;
+    const cy = pin.y + PIN_H;
+
+    const patternId = 'exp-ht-' + i;
+    svg += `<g transform="translate(${t.x}, ${t.y}) rotate(${t.rotate}, ${cx}, ${cy})">`;
+    svg += `<svg x="${pin.x}" y="${pin.y}" width="${PIN_W}" height="${PIN_H}" viewBox="${PIN_VB}" preserveAspectRatio="none">`;
+    svg += `<defs>`;
+    svg += `<pattern id="${patternId}" patternUnits="userSpaceOnUse" patternTransform="matrix(-19.091 0 0 38.181 988.477 0)" preserveAspectRatio="none" viewBox="0 0 64.383 128.766" width="1" height="1">`;
+    svg += `<circle cx="16.016" cy="16.016" r="16.016" fill="#FF1100"/>`;
+    svg += `<circle cx="-48.367" cy="16.016" r="16.016" fill="#FF1100"/>`;
+    svg += `<circle cx="-16.175" cy="80.399" r="16.016" fill="#FF1100"/>`;
+    svg += `<circle cx="48.207" cy="80.399" r="16.016" fill="#FF1100"/>`;
+    svg += `</pattern>`;
+    svg += `</defs>`;
+    svg += `<path d="${PIN_PATH}" fill="url(#${patternId})"/>`;
+    svg += `</svg>`;
+    svg += `</g>`;
+  });
+
+  // Header
+  svg += `<svg x="${HEADER.x}" y="${HEADER.y}" width="${HEADER.w}" height="${HEADER.h}" viewBox="0 0 2116 119" preserveAspectRatio="none">`;
+  svg += `<rect width="2116" height="119" rx="59.5" fill="#010101"/>`;
+  svg += `<circle cx="62" cy="59" r="21" fill="#fff"/>`;
+  svg += `<text x="100" y="72" fill="#fff" font-family="Inter, system-ui, sans-serif" font-size="46" font-weight="600">All game.</text>`;
+  svg += `<circle cx="870" cy="59" r="21" fill="#fff"/>`;
+  svg += `<text x="910" y="72" fill="#fff" font-family="Inter, system-ui, sans-serif" font-size="46" font-weight="600">No gutter.</text>`;
+  svg += `<circle cx="1550" cy="59" r="21" fill="#fff"/>`;
+  svg += `<text x="1590" y="72" fill="#fff" font-family="Inter, system-ui, sans-serif" font-size="46" font-weight="600">April 29</text>`;
+  svg += `<text x="1830" y="72" fill="#fff" font-family="Inter, system-ui, sans-serif" font-size="46" font-weight="400">7-10 PM EST</text>`;
+  svg += `</svg>`;
+
+  // "and" badge
+  svg += `<svg x="${AND_BADGE.x}" y="${AND_BADGE.y}" width="${AND_BADGE.w}" height="${AND_BADGE.h}" viewBox="0 0 51 51">`;
+  svg += `<circle cx="25.143" cy="25.143" r="25.143" fill="#FFFFFF"/>`;
+  svg += `<text x="25.143" y="30" text-anchor="middle" fill="#010101" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600">and</text>`;
+  svg += `</svg>`;
+
+  svg += '</svg>';
+
+  // Render to canvas
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+
+  const img = new Image();
+  img.onload = () => {
+    ctx.drawImage(img, 0, 0);
+    canvas.toBlob((blob) => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `jazzy-nova-roll-${state.rollCount}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 'image/png');
+  };
+  img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+}
+
+// ═══════════════════════════════════════════════════
+// EVENT LISTENERS
+// ═══════════════════════════════════════════════════
+
+document.getElementById('rollBtn').addEventListener('click', rollTheBall);
+document.getElementById('resetBtn').addEventListener('click', resetPoster);
+document.getElementById('exportBtn').addEventListener('click', exportPNG);
+
+window.addEventListener('resize', () => {
+  fitPoster();
+  buildPoster();
+});
+
+// Keyboard shortcut: Space to roll
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space' && !e.repeat) {
+    e.preventDefault();
+    rollTheBall();
+  }
+  if (e.code === 'KeyR' && !e.metaKey && !e.ctrlKey) {
+    resetPoster();
+  }
+});
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+
+fitPoster();
+buildPoster();
+</script>
+
+</body>
+</html>
